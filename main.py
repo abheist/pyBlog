@@ -57,6 +57,24 @@ def rot(s):
 			newStr = newStr + chr(each)
 	return newStr
 
+import re
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+def valid_username(username):
+	return USER_RE.match(username)
+
+USER_PS = re.compile(r"^.{3,20}$")
+def valid_password(password):
+	return USER_PS.match(password)
+
+USER_EM = re.compile(r"^[\S]+@[\S]+\.[\S]+$")
+def valid_email(email):
+	return USER_EM.match(email)
+
+def valid_verify(pass1, pass2):
+	if pass1 == pass2:
+		return True
+
+
 
 form = """
 	<form method="post">
@@ -75,6 +93,17 @@ form = """
 rot13 = """
 	<form method="post">
 		<textarea name="rotting" id="" cols="30" rows="10">%(rotValue)s</textarea>
+		<input type="submit">
+	</form>
+"""
+
+signup = """
+	<form method="post">
+		<label>Username : <input type="text" name="username"><span style="color: red;"> %(usererror)s</span></label><br><br>
+		<label>Password : <input type="password" name="password"><span style="color: red;"> %(passerror)s</span></label><br><br>
+		<label>Verify Password : <input type="password" name="verify"><span style="color: red;"> %(verifyerror)s</span></label><br><br>
+		<label>Email : <input type="text" name="email"><span style="color: red;"> %(submiterror)s</span></label><br>
+		<br>
 		<input type="submit">
 	</form>
 """
@@ -120,4 +149,33 @@ class RotHandler(webapp2.RequestHandler):
 		value = rot(n)
 		self.write_rot(value)
 
-app = webapp2.WSGIApplication([('/', MainPage), ('/thanks', ThanksHandler), ('/rot', RotHandler)], debug=True)
+class SignupHandler(webapp2.RequestHandler):
+	def write_signup(self, usererror="", passerror="", verifyerror="", submiterror=""):
+		self.response.out.write(signup % {"usererror": usererror, "passerror": passerror, "verifyerror": verifyerror, "submiterror": submiterror})
+
+	def get(self):
+		self.write_signup()
+
+
+	def post(self):
+		user_name = self.request.get('username')
+		user_password = self.request.get('password')
+		user_verify = self.request.get('verify')
+		user_mail = self.request.get('email')
+
+		user = valid_username(user_name)
+		upass = valid_password(user_password)
+		vpass = valid_verify(user_password, user_verify)
+		vemail = valid_email(user_mail)
+
+
+		if not (user and upass and vpass and vemail):
+			self.write_signup("Not look good to me!")
+		else:
+			self.redirect('/welcome')
+
+class WelcomeHandler(webapp2.RequestHandler):
+	def get(self):
+		self.response.out.write("Welcome")
+
+app = webapp2.WSGIApplication([('/', MainPage), ('/thanks', ThanksHandler), ('/rot', RotHandler), ('/signup', SignupHandler), ('/welcome', WelcomeHandler)], debug=True)
